@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Word Game</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #eef2ff;
+      --card: #ffffff;
+      --primary: #4f46e5;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --green: #22c55e;
+      --red: #ef4444;
+    }
+
+    body {
+      font-family: "Segoe UI", Tahoma, "Vazirmatn", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .app { width: 100%; max-width: 560px; }
+
+    .top {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .top h1 { font-size: 1.6rem; color: var(--primary); cursor: pointer; }
+
+    .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+    .lang-switch {
+      display: flex;
+      border: 2px solid var(--primary);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .lang-btn {
+      border: none;
+      background: transparent;
+      color: var(--primary);
+      padding: 8px 14px;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+    .lang-btn.active { background: var(--primary); color: #fff; }
+
+    .about-btn {
+      border: 2px solid var(--primary);
+      background: #fff;
+      color: var(--primary);
+      padding: 8px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+    .about-btn:hover { background: var(--primary); color: #fff; }
+
+    .card {
+      background: var(--card);
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 8px 24px rgba(79, 70, 229, 0.12);
+    }
+
+    .score-row {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-bottom: 18px;
+    }
+
+    .prompt { text-align: center; color: var(--muted); margin-bottom: 10px; }
+
+    .word-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+
+    .word {
+      font-size: clamp(1.8rem, 8vw, 2.6rem);
+      font-weight: 700;
+      word-break: break-word;
+      text-align: center;
+    }
+
+    .speak-btn {
+      border: none;
+      background: var(--primary);
+      color: #fff;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      font-size: 1.2rem;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .speak-btn:hover { opacity: 0.85; }
+
+    .options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .option {
+      border: 2px solid #e5e7eb;
+      background: #f9fafb;
+      border-radius: 12px;
+      padding: 14px 10px;
+      font-size: 1.05rem;
+      cursor: pointer;
+      transition: transform 0.1s, background 0.2s;
+      color: var(--text);
+    }
+    .option:hover:not(:disabled) { border-color: var(--primary); transform: translateY(-2px); }
+    .option:disabled { cursor: default; }
+    .option.correct { background: var(--green); border-color: var(--green); color: #fff; }
+    .option.wrong { background: var(--red); border-color: var(--red); color: #fff; }
+
+    .message { text-align: center; min-height: 1.5em; margin-top: 14px; font-weight: 600; }
+
+    .next-btn {
+      display: block;
+      width: 100%;
+      margin-top: 12px;
+      border: none;
+      background: var(--primary);
+      color: #fff;
+      padding: 13px;
+      border-radius: 12px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .next-btn:disabled { background: #c7c9f5; cursor: not-allowed; }
+
+    /* Modal */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal.hidden { display: none; }
+    .modal-box {
+      background: #fff;
+      border-radius: 16px;
+      padding: 24px;
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+    }
+    .modal-box h2 { color: var(--primary); margin-bottom: 10px; }
+    .modal-box p { margin-bottom: 8px; line-height: 1.7; }
+
+    /* Responsive */
+    @media (max-width: 480px) {
+      .card { padding: 16px; }
+      .options { grid-template-columns: 1fr; }
+      .top { justify-content: center; text-align: center; }
+      .top h1 { width: 100%; }
+      .controls { justify-content: center; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="top">
+      <h1 id="title">Word Game</h1>
+      <div class="controls">
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button id="langEn" class="lang-btn active">English</button>
+          <button id="langFa" class="lang-btn">فارسی</button>
+        </div>
+        <button id="aboutBtn" class="about-btn">About</button>
+      </div>
+    </header>
+
+    <main class="card">
+      <div class="score-row">
+        <span><span id="scoreLabel">Score</span>: <b id="score">0</b></span>
+        <span><span id="totalLabel">Questions</span>: <b id="total">0</b></span>
+      </div>
+
+      <p id="prompt" class="prompt">What is the meaning of this word?</p>
+
+      <div class="word-row">
+        <div id="word" class="word">...</div>
+        <button id="speakBtn" class="speak-btn" aria-label="Pronounce">🔊</button>
+      </div>
+
+      <div id="options" class="options"></div>
+
+      <p id="message" class="message" aria-live="polite"></p>
+
+      <button id="nextBtn" class="next-btn" disabled>Next</button>
+    </main>
+  </div>
+
+  <!-- About modal -->
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-box">
+      <h2 id="aboutTitle">About</h2>
+      <p id="aboutText">This app was created by Mohammad Idrees.</p>
+      <button id="closeModal" class="next-btn">OK</button>
+    </div>
+  </div>
+
+  <!-- Words stored as JSON -->
+  <script type="application/json" id="wordsData">
+  {
+    "words": [
+    { "en": "Virtual reality (VR)", "fa": "واقعیت مجازی" }, { "en": "Computer-generated", "fa": "ایجادشده توسط کامپیوتر" }, { "en": "Dimension", "fa": "بُعد" }, { "en": "Length", "fa": "طول" }, { "en": "Width", "fa": "عرض" }, { "en": "Depth", "fa": "عمق" }, { "en": "Flat", "fa": "مسطح" }, { "en": "Special glasses", "fa": "عینک مخصوص" }, { "en": "Experience", "fa": "تجربه" }, { "en": "Sight", "fa": "بینایی" }, { "en": "Feeling", "fa": "احساس، حس لامسه" }, { "en": "Move around", "fa": "جابه‌جا کردن" }, { "en": "Medical student", "fa": "دانشجوی پزشکی" }, { "en": "Anatomy", "fa": "علم تشریح، کالبدشناسی" }, { "en": "Human body", "fa": "بدن انسان" }, { "en": "Function", "fa": "عملکرد، وظیفه" }, { "en": "Muscle", "fa": "عضله" }, { "en": "Latest", "fa": "جدیدترین" }, { "en": "Textbook", "fa": "کتاب درسی" }, { "en": "Layer", "fa": "لایه" }, { "en": "Connected", "fa": "متصل، مرتبط" }, { "en": "Bone", "fa": "استخوان" }, { "en": "Fit together", "fa": "در کنار هم قرار گرفتن" }, { "en": "Variety", "fa": "تنوع" }, { "en": "Medical examination", "fa": "معاینه پزشکی" }, { "en": "Examine", "fa": "معاینه کردن، بررسی کردن" }, { "en": "Patient", "fa": "بیمار" }, { "en": "Diagnosis", "fa": "تشخیص بیماری" }, { "en": "Instructor", "fa": "مدرس، مربی" }, { "en": "Specific", "fa": "مشخص، معین" }, { "en": "Situation", "fa": "وضعیت، موقعیت" }, { "en": "Virtual patient", "fa": "بیمار مجازی" }, { "en": "Click on", "fa": "روی چیزی کلیک کردن" }, { "en": "Check", "fa": "بررسی کردن" }, { "en": "Identify", "fa": "شناسایی کردن" }, { "en": "Report", "fa": "گزارش" }, { "en": "Miss", "fa": "از دست دادن، متوجه نشدن" }, { "en": "Emergency room", "fa": "بخش اورژانس" }, { "en": "Under pressure", "fa": "تحت فشار" }, { "en": "Life-and-death decision", "fa": "تصمیم مرگ و زندگی" }, { "en": "Typically", "fa": "معمولاً" }, { "en": "Perform", "fa": "انجام دادن" }, { "en": "Fortunately", "fa": "خوشبختانه" }, { "en": "Heartbeat", "fa": "ضربان قلب" }, { "en": "Heart monitor", "fa": "دستگاه پایش ضربان قلب" }, { "en": "Take action", "fa": "اقدام کردن" }, { "en": "Positive reinforcement", "fa": "تقویت مثبت" }, { "en": "Incorrect", "fa": "نادرست، اشتباه" }, { "en": "Result", "fa": "نتیجه" }, { "en": "Extremely", "fa": "بسیار، فوق‌العاده" }, { "en": "Technology", "fa": "فناوری، تکنولوژی" }, { "en": "Improve", "fa": "بهبود دادن" }, { "en": "Performance", "fa": "عملکرد" }, { "en": "Replace", "fa": "جایگزین کردن" }, { "en": "Take care of", "fa": "مراقبت کردن از" }, { "en": "Skill", "fa": "مهارت" } ,
+     
+      
+    {
+      "en": "walk into",
+      "fa": "وارد شدن به"
+    },
+    {
+      "en": "restaurant",
+      "fa": "رستوران"
+    },
+    {
+      "en": "bright",
+      "fa": "روشن، درخشان"
+    },
+    {
+      "en": "cheerful",
+      "fa": "شاد، سرحال"
+    },
+    {
+      "en": "advertising",
+      "fa": "تبلیغات"
+    },
+    {
+      "en": "advertise",
+      "fa": "تبلیغ کردن"
+    },
+    {
+      "en": "product",
+      "fa": "محصول"
+    },
+    {
+      "en": "service",
+      "fa": "خدمات"
+    },
+    {
+      "en": "remember",
+      "fa": "به یاد آوردن"
+    },
+    {
+      "en": "company name",
+      "fa": "نام شرکت"
+    },
+    {
+      "en": "notice",
+      "fa": "متوجه شدن، توجه کردن"
+    },
+    {
+      "en": "project",
+      "fa": "طرح، پروژه پژوهشی"
+    },
+    {
+      "en": "business",
+      "fa": "کسب‌وکار"
+    },
+    {
+      "en": "dependable",
+      "fa": "قابل اعتماد"
+    },
+    {
+      "en": "peaceful",
+      "fa": "آرام"
+    },
+    {
+      "en": "powerful",
+      "fa": "قدرتمند"
+    },
+    {
+      "en": "serious",
+      "fa": "جدی"
+    },
+    {
+      "en": "company colors",
+      "fa": "رنگ‌های مخصوص یک شرکت"
+    },
+    {
+      "en": "variety",
+      "fa": "تنوع، گوناگونی"
+    },
+    {
+      "en": "a variety of",
+      "fa": "انواع مختلف"
+    },
+    {
+      "en": "for that reason",
+      "fa": "به همین دلیل"
+    },
+    {
+      "en": "instead of",
+      "fa": "به جای"
+    },
+    {
+      "en": "late 1990s",
+      "fa": "اواخر دهه ۱۹۹۰"
+    },
+    {
+      "en": "come in",
+      "fa": "در رنگ، اندازه و غیره موجود بودن"
+    },
+    {
+      "en": "oil company",
+      "fa": "شرکت نفتی"
+    },
+    {
+      "en": "nature",
+      "fa": "طبیعت"
+    },
+    {
+      "en": "environment",
+      "fa": "محیط زیست"
+    },
+    {
+      "en": "care about",
+      "fa": "اهمیت دادن به"
+    },
+    {
+      "en": "delivery company",
+      "fa": "شرکت تحویل کالا"
+    },
+    {
+      "en": "reliable",
+      "fa": "قابل اعتماد"
+    },
+    {
+      "en": "uniform",
+      "fa": "یونیفورم، لباس فرم"
+    },
+    {
+      "en": "from the beginning",
+      "fa": "از ابتدا"
+    },
+    {
+      "en": "in today's world",
+      "fa": "در دنیای امروز"
+    },
+    {
+      "en": "boring",
+      "fa": "خسته‌کننده"
+    },
+    {
+      "en": "positive symbol",
+      "fa": "نماد مثبت"
+    },
+    {
+      "en": "excellent",
+      "fa": "عالی"
+    },
+    {
+      "en": "establish",
+      "fa": "ایجاد کردن، تثبیت کردن"
+    },
+    {
+      "en": "brand",
+      "fa": "برند، نام تجاری"
+    },
+    {
+      "en": "encourage",
+      "fa": "تشویق کردن"
+    },
+    {
+      "en": "customer",
+      "fa": "مشتری"
+    },
+    {
+      "en": "respond",
+      "fa": "واکنش نشان دادن"
+    },
+    {
+      "en": "strongly",
+      "fa": "قویاً، به‌شدت"
+    },
+    {
+      "en": "carefully",
+      "fa": "با دقت"
+    },
+    {
+      "en": "consider",
+      "fa": "در نظر گرفتن، بررسی کردن"
+    },
+    {
+      "en": "symbol",
+      "fa": "نماد"
+    },
+    
+  {
+    "en": "unaware",
+    "fa": "بی‌خبر، ناآگاه"
+  },
+  {
+    "en": "variety",
+    "fa": "تنوع، گوناگونی"
+  },
+  {
+    "en": "comfortable",
+    "fa": "راحت، آسوده"
+  },
+  {
+    "en": "character",
+    "fa": "شخصیت"
+  },
+  {
+    "en": "according to",
+    "fa": "بر اساس، طبق"
+  },
+  {
+    "en": "research",
+    "fa": "تحقیق، پژوهش"
+  },
+  {
+    "en": "in the field of",
+    "fa": "در زمینه"
+  },
+  {
+    "en": "psychology",
+    "fa": "روان‌شناسی"
+  },
+  {
+    "en": "suggest",
+    "fa": "نشان دادن، حاکی بودن"
+  },
+  {
+    "en": "serious",
+    "fa": "جدی"
+  },
+  {
+    "en": "intelligent",
+    "fa": "باهوش"
+  },
+  {
+    "en": "graduate",
+    "fa": "فارغ‌التحصیل شدن"
+  },
+  {
+    "en": "respect",
+    "fa": "معنی در فایل مشخص نیست"
+  }
+
+    ,{ "en": "apple", "fa": "سیب" },
+      { "en": "book", "fa": "کتاب" },
+      { "en": "water", "fa": "آب" },
+      { "en": "house", "fa": "خانه" },
+      { "en": "friend", "fa": "دوست" },
+      { "en": "teacher", "fa": "معلم" },
+      { "en": "student", "fa": "شاگرد" },
+      { "en": "school", "fa": "مکتب" },
+      { "en": "mountain", "fa": "کوه" },
+      { "en": "river", "fa": "دریا" },
+      { "en": "sun", "fa": "آفتاب" },
+      { "en": "moon", "fa": "ماه" },
+      { "en": "star", "fa": "ستاره" },
+      { "en": "bread", "fa": "نان" },
+      { "en": "flower", "fa": "گل" },
+      { "en": "tree", "fa": "درخت" },
+      { "en": "bird", "fa": "پرنده" },
+      { "en": "horse", "fa": "اسپ" },
+      { "en": "road", "fa": "سرک" },
+      { "en": "city", "fa": "شهر" },
+      { "en": "village", "fa": "قریه" },
+      { "en": "market", "fa": "بازار" },
+      { "en": "time", "fa": "وقت" },
+      { "en": "night", "fa": "شب" },
+      { "en": "morning", "fa": "صبح" },
+      { "en": "happy", "fa": "خوشحال" },
+      { "en": "strong", "fa": "قوی" },
+      { "en": "quick", "fa": "تیز" },
+      { "en": "library", "fa": "کتابخانه" },
+      { "en": "window", "fa": "کلکین" },
+      { "en": "door", "fa": "دروازه" },
+      { "en": "knowledge", "fa": "دانش" },
+      { "en": "journey", "fa": "سفر" },
+      { "en": "dream", "fa": "خواب" },
+      { "en": "peace", "fa": "صلح" },
+      { "en": "heart", "fa": "دل" }
+    ]
+  }
+  </script>
+
+  <script>
+    const TEXTS = {
+      en: {
+        title: "Word Game",
+        prompt: "What is the meaning of this word?",
+        score: "Score",
+        total: "Questions",
+        next: "Next",
+        about: "About",
+        aboutTitle: "About",
+        aboutText: "This app was created by Mohammad Edris.",
+        ok: "OK",
+        correct: "Correct! 🎉",
+        wrong: "Wrong! The correct answer is highlighted.",
+        noVoice: "Pronunciation is not supported for this language on your device."
+      },
+      fa: {
+        title: "بازی لغات",
+        prompt: "معنی این لغت چیست؟",
+        score: "امتیاز",
+        total: "سوالات",
+        next: "بعدی",
+        about: "درباره",
+        aboutTitle: "درباره برنامه",
+        aboutText: "این برنامه توسط محمد ادریس ساخته شده است.",
+        ok: "باشه",
+        correct: "درست است! 🎉",
+        wrong: "اشتباه! جواب درست با رنگ سبز نشان داده شد.",
+        noVoice: "تلفظ برای این زبان در دستگاه شما پشتیبانی نمی‌شود."
+      }
+    };
+
+    const words = JSON.parse(document.getElementById("wordsData").textContent).words;
+
+    let lang = "en";   // language of the displayed word: "en" or "fa"
+    let current = null;
+    let answered = false;
+    let score = 0;
+    let total = 0;
+
+    const $ = (id) => document.getElementById(id);
+
+    function shuffle(arr) {
+      const a = arr.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function newQuestion() {
+      answered = false;
+      $("message").textContent = "";
+      $("message").style.color = "";
+      $("nextBtn").disabled = true;
+
+      const target = lang === "en" ? "fa" : "en";
+      current = words[Math.floor(Math.random() * words.length)];
+
+      const wrongs = shuffle(words.filter((w) => w !== current && w[target] !== current[target])).slice(0, 3);
+      const options = shuffle([current, ...wrongs]);
+
+      $("word").textContent = current[lang];
+      $("word").dir = lang === "fa" ? "rtl" : "ltr";
+
+      const box = $("options");
+      box.innerHTML = "";
+      options.forEach((opt) => {
+        const btn = document.createElement("button");
+        btn.className = "option";
+        btn.textContent = opt[target];
+        btn.dir = target === "fa" ? "rtl" : "ltr";
+        btn.addEventListener("click", () => choose(btn, opt));
+        box.appendChild(btn);
+      });
+    }
+
+    function choose(btn, opt) {
+      if (answered) return;
+      answered = true;
+      total++;
+      const t = TEXTS[lang];
+      const target = lang === "en" ? "fa" : "en";
+      const isRight = opt === current;
+
+      document.querySelectorAll(".option").forEach((b) => {
+        b.disabled = true;
+        if (b.textContent === current[target]) b.classList.add("correct");
+      });
+
+      if (isRight) {
+        score++;
+        $("message").textContent = t.correct;
+        $("message").style.color = "#16a34a";
+      } else {
+        btn.classList.add("wrong");
+        $("message").textContent = t.wrong;
+        $("message").style.color = "#dc2626";
+      }
+
+      $("score").textContent = score;
+      $("total").textContent = total;
+      $("nextBtn").disabled = false;
+    }
+
+    function speak() {
+      if (!current || !("speechSynthesis" in window)) {
+        $("message").textContent = TEXTS[lang].noVoice;
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(current[lang]);
+      u.lang = lang === "en" ? "en-US" : "fa-IR";
+      u.rate = 0.9;
+      const voices = window.speechSynthesis.getVoices();
+      const prefix = lang === "en" ? "en" : "fa";
+      const voice = voices.find((v) => v.lang.toLowerCase().startsWith(prefix));
+      if (voice) u.voice = voice;
+      else if (lang === "fa" && voices.length) {
+        $("message").textContent = TEXTS.fa.noVoice;
+        $("message").style.color = "#6b7280";
+      }
+      window.speechSynthesis.speak(u);
+    }
+
+    function applyLanguage() {
+      const t = TEXTS[lang];
+      document.documentElement.lang = lang;
+      document.documentElement.dir = lang === "fa" ? "rtl" : "ltr";
+      document.title = t.title;
+      $("title").textContent = t.title;
+      $("prompt").textContent = t.prompt;
+      $("scoreLabel").textContent = t.score;
+      $("totalLabel").textContent = t.total;
+      $("nextBtn").textContent = t.next;
+      $("aboutBtn").textContent = t.about;
+      $("aboutTitle").textContent = t.aboutTitle;
+      $("aboutText").textContent = t.aboutText;
+      $("closeModal").textContent = t.ok;
+      $("langEn").classList.toggle("active", lang === "en");
+      $("langFa").classList.toggle("active", lang === "fa");
+    }
+
+    function setLang(l) {
+      if (l === lang) return;
+      lang = l;
+      score = 0;
+      total = 0;
+      $("score").textContent = 0;
+      $("total").textContent = 0;
+      applyLanguage();
+      newQuestion();
+    }
+
+    // Events
+    $("langEn").addEventListener("click", () => setLang("en"));
+    $("langFa").addEventListener("click", () => setLang("fa"));
+    $("speakBtn").addEventListener("click", speak);
+    $("nextBtn").addEventListener("click", newQuestion);
+    $("aboutBtn").addEventListener("click", () => $("modal").classList.remove("hidden"));
+    $("title").addEventListener("click", () => $("modal").classList.remove("hidden"));
+    $("closeModal").addEventListener("click", () => $("modal").classList.add("hidden"));
+    $("modal").addEventListener("click", (e) => {
+      if (e.target === $("modal")) $("modal").classList.add("hidden");
+    });
+
+    if ("speechSynthesis" in window) window.speechSynthesis.getVoices();
+
+    applyLanguage();
+    newQuestion();
+  </script>
+</body>
+</html>
